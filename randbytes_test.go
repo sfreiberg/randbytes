@@ -83,3 +83,25 @@ func TestReadZeroLength(t *testing.T) {
 		t.Fatalf("got %d bytes, want 0", len(data))
 	}
 }
+
+func TestReadEmptyBuffer(t *testing.T) {
+	r := randbytes.NewReader(10)
+	if n, err := r.Read(nil); n != 0 || err != nil {
+		t.Fatalf("Read(nil) = (%d, %v), want (0, nil)", n, err)
+	}
+}
+
+func TestReadEmptyCharset(t *testing.T) {
+	r := randbytes.NewReaderChars(10, nil)
+	if _, err := r.Read(make([]byte, 5)); err != randbytes.ErrEmptyCharset {
+		t.Fatalf("err = %v, want ErrEmptyCharset", err)
+	}
+}
+
+func TestReadersDiffer(t *testing.T) {
+	a, _ := io.ReadAll(randbytes.NewReader(64))
+	b, _ := io.ReadAll(randbytes.NewReader(64))
+	if string(a) == string(b) {
+		t.Fatal("two readers produced identical output")
+	}
+}
