@@ -20,3 +20,66 @@ func TestRead(t *testing.T) {
 		t.Fatalf("Received %x but expected %x\n", len(bytes), size)
 	}
 }
+
+func TestReadUsesOnlyCharset(t *testing.T) {
+	chars := []byte("ab")
+	data, err := io.ReadAll(randbytes.NewReaderChars(10000, chars))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data) != 10000 {
+		t.Fatalf("got %d bytes, want 10000", len(data))
+	}
+	var seen [256]int
+	for _, b := range data {
+		seen[b]++
+	}
+	for b, n := range seen {
+		if n > 0 && b != 'a' && b != 'b' {
+			t.Fatalf("byte %q is not in the character set", byte(b))
+		}
+	}
+	// With 10000 samples both characters must show up.
+	if seen['a'] == 0 || seen['b'] == 0 {
+		t.Fatalf("expected both characters to appear, got a=%d b=%d", seen['a'], seen['b'])
+	}
+}
+
+func TestReadSmallBuffers(t *testing.T) {
+	r := randbytes.NewReaderChars(10, randbytes.NumericChars)
+	buf := make([]byte, 3)
+	total := 0
+	for {
+		n, err := r.Read(buf)
+		total += n
+		for _, b := range buf[:n] {
+			if b < '0' || b > '9' {
+				t.Fatalf("unexpected byte %q", b)
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if total != 10 {
+		t.Fatalf("read %d bytes, want 10", total)
+	}
+
+	// Further reads keep returning EOF.
+	if n, err := r.Read(buf); n != 0 || err != io.EOF {
+		t.Fatalf("read after EOF = (%d, %v), want (0, EOF)", n, err)
+	}
+}
+
+func TestReadZeroLength(t *testing.T) {
+	data, err := io.ReadAll(randbytes.NewReader(0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data) != 0 {
+		t.Fatalf("got %d bytes, want 0", len(data))
+	}
+}
