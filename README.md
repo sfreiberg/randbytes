@@ -13,4 +13,4 @@ $ go get github.com/sfreiberg/randbytes
 `
 
 ## License
-Plivo is licensed under the MIT license.
+RandBytes is licensed under the MIT license.
